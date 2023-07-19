@@ -1,7 +1,7 @@
 "use strict";
 
 let habits = [];
-const habit_KEY = "habit_KEY";
+const HABIT_KEY = "HABIT_KEY";
 let globalActivehabitId;
 
 /* page */
@@ -22,7 +22,7 @@ const page = {
 /* utils */
 
 function loadData() {
-    const habitsString = localStorage.getItem(habit_KEY);
+    const habitsString = localStorage.getItem(HABIT_KEY);
     const habitArray = JSON.parse(habitsString);
     if (Array.isArray(habitArray)) {
         habits = habitArray;
@@ -30,7 +30,7 @@ function loadData() {
 }
 
 function saveData() {
-    localStorage.setItem(habit_KEY, JSON.stringify(habits));
+    localStorage.setItem(HABIT_KEY, JSON.stringify(habits));
 }
 
 /* render */
