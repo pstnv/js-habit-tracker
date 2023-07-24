@@ -16,7 +16,11 @@ const page = {
     content: {
         daysContainer: document.querySelector("#days"),
         nextDay: document.querySelector(".habit__day")
-    } 
+    },
+    popup: {
+        index: document.querySelector('#add-habbit_popup'),
+        iconField: document.querySelector('.popup__form input[name="icon"]')
+    }
 }
 
 /* utils */
@@ -31,6 +35,35 @@ function loadData() {
 
 function saveData() {
     localStorage.setItem(HABIT_KEY, JSON.stringify(habits));
+}
+
+function togglePopup () {
+    page.popup.index.classList.toggle('cover_hidden');
+}
+
+function validateAndGetForm(form, fields) {
+    const formData = new FormData(form);
+
+    const res = fields.reduce((acc, field) => {
+        const fieldValue = formData.get(field);
+        form[field].classList.remove("error");
+        if (!fieldValue) {
+            form[field].classList.add("error");
+        }
+        acc[field] = fieldValue;
+        return acc;
+    }, {});
+    const isValid = fields.every(field => res[field]);
+    if (!isValid) {
+        return;
+    }
+    return res;
+}
+
+function resetForm(form, fields) {
+    fields.forEach(field => {
+        form[field].value = "";
+    });
 }
 
 /* render */
@@ -80,7 +113,7 @@ function rerenderContent(activehabit) {
             <div class="habit__day">День ${index + 1}</div>
             <div class="habit__comment">${day.comment}</div>
             <button class="habit__delete"  onclick="deleteDay(${index})">
-                <img src="images/shape.svg" alt="Удалить день ${index + 1}">
+                <img src="images/delete.svg" alt="Удалить день ${index + 1}">
             </button>
         `;
         page.content.daysContainer.appendChild(element);
@@ -97,6 +130,7 @@ function rerender(activehabitId) {
     if (!activehabit) {
         return;
     }
+    document.location.replace(document.location.pathname + '#' + activehabitId);
     rerenderMenu(activehabit);
     rerenderHead(activehabit);
     rerenderContent(activehabit)
@@ -106,25 +140,24 @@ function rerender(activehabitId) {
 function addDays(event) {
     event.preventDefault();
     const form = event.target;
-    const data = new FormData(event.target);
-    const comment = data.get("comment");
-    if (!comment) {
-        form["comment"].classList.add("error");
+
+    const data = validateAndGetForm(form, ["comment"]);
+    if (!data) {
         return;
     }
-    form["comment"].classList.remove("error");
+
     habits = habits.map(habit => {
         if (habit.id === globalActivehabitId) {
             return {
                 ...habit,
-                days: habit.days.concat([{ comment }])
+                days: habit.days.concat([{ comment: data.comment }])
             }
         }
         return habit;
     });
+    resetForm(form, ["comment"]);
     rerender(globalActivehabitId);
     saveData();
-    form["comment"].value = "";
 }
 
 function deleteDay(index) {
@@ -142,7 +175,34 @@ function deleteDay(index) {
     saveData();
 }
 
+/* working with habits */
 
+function setIcon(context, icon) {
+    page.popup.iconField.value = icon;
+    const activeIcon = document.querySelector('.icon.icon_active');
+    activeIcon.classList.remove('icon_active');
+    context.classList.add('icon_active');
+}
+function addHabit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const data = validateAndGetForm(form, ["name", "icon", "target"]);
+    if (!data) {
+        return;
+    }
+    const maxId = habits.reduce((acc, habit) => acc > habit.id ? acc : habit.id, 0)
+    habits.push({
+        id: maxId + 1,
+        name: data.name,
+        icon: data.icon,
+        target: data.target,
+        days: []
+    });
+    resetForm(form, ["name", "target"]);
+    togglePopup();
+    saveData();
+    rerender(maxId + 1);
+}
 
 
 /* init */
@@ -153,5 +213,11 @@ function deleteDay(index) {
     if (habits.length === 0) {
         return
     }
-    rerender(habits[0].id)
+    const hashId = Number(document.location.hash.replace('#', ''));
+    const urlHabitId = habits.find(habit => habit.id == hashId);
+    if (urlHabitId) {
+        rerender(urlHabitId.id)
+    } else {
+        rerender(habits[0].id)
+    }
 })();
